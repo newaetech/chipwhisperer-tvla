@@ -10,14 +10,14 @@ from ktp import FixedVRandomText, FixedVRandomKey, SemiFixedVRandomText
 
 import matplotlib.pyplot as plt
 
-N = 10000
+N = 100
 
 def setup_cw(programmer, path):
     scope = cw.scope()
     target = cw.target(scope)
     scope.default_setup()
-    scope.adc.samples = 10000
-    scope.adc.offset = 20000
+    scope.adc.samples = 24400
+    scope.adc.offset = 10000 
     time.sleep(0.05)
     cw.program_target(scope, programmer, path)
     return scope, target
@@ -30,8 +30,10 @@ def create_projects(name):
 def perform_test(platform, tvla_obj, plot=False):
     if platform == "xmega":
         scope, target = setup_cw(cw.programmers.XMEGAProgrammer, "AES-xmega.hex")
+        N = 100
     elif platform == "stm":
-        scope, target = setup_cw(cw.programmers.STM32FProgrammer, "AES.hex")
+        scope, target = setup_cw(cw.programmers.STM32FProgrammer, "AES-mbed.hex")
+        N = 100
     elif platform == "CW305":
         scope = cw.scope()
 
@@ -59,12 +61,13 @@ def perform_test(platform, tvla_obj, plot=False):
         # 1ms is plenty of idling time
         target.clkusbautooff = True
         target.clksleeptime = 1
+        N = 2500
 
     ktp = tvla_obj(16)
     fixed_project, random_project = create_projects(ktp._name)
 
     #collect group1 data
-    for i in trange(N//2):
+    for i in trange(N):
         key, text = ktp.next_group_A() 
         trace = cw.capture_trace(scope, target, text, key)
         while trace is None:
@@ -72,15 +75,12 @@ def perform_test(platform, tvla_obj, plot=False):
 
         fixed_project.traces.append(trace)
 
-
-    #collect group2 data
-    for i in trange(N//2):
         key, text = ktp.next_group_B() 
         trace = cw.capture_trace(scope, target, text, key)
         while trace is None:
             trace = cw.capture_trace(scope, target, text, key)
-
         random_project.traces.append(trace)
+
 
 
     print(scope.adc.trig_count)
@@ -125,8 +125,11 @@ def t_test(project_1, project_2):
 def check_t_test(t):
     failed_points = []
     for i in range(len(t[0])):
-        if (abs(t[0][i]) > 4.5) and (abs(t[1][i]) > 4.5):
+        if ((t[0][i]) > 4.5) and ((t[1][i]) > 4.5):
             failed_points.append(i)
+        elif ((t[0][i]) < -4.5) and ((t[1][i]) < -4.5):
+            failed_points.append(i)
+
     return failed_points
 
 

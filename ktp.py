@@ -1,8 +1,9 @@
 from chipwhisperer.common.utils import util
 import warnings
 from chipwhisperer.common.utils.aes_cipher import AESCipher
-from chipwhisperer.analyzer.utils.aes_funcs import key_schedule_rounds
+from chipwhisperer.analyzer.utils.aes_funcs import *
 import numpy as np
+from Crypto.Cipher import AES
 
 class FixedVRandomText:
     _name = "FixedVRandomText"
@@ -28,7 +29,7 @@ class FixedVRandomText:
             raise ValueError("Invalid key length {}, must be 16, 24, or 32".format(key_len))
 
         self._K_gen_exp = list(self._K_gen)
-        for i in range(rounds):
+        for i in range(1, rounds+1):
             self._K_gen_exp.extend(key_schedule_rounds(list(self._K_gen), 0, i))
         self._cipher = AESCipher(self._K_gen_exp)
 
@@ -70,7 +71,7 @@ class FixedVRandomKey:
             raise ValueError("Invalid key length {}, must be 16, 24, or 32".format(key_len))
 
         self._K_gen_exp = list(self._K_gen)
-        for i in range(rounds):
+        for i in range(1, rounds+1):
             self._K_gen_exp.extend(key_schedule_rounds(list(self._K_gen), 0, i))
 
         self._cipher = AESCipher(self._K_gen_exp)
@@ -126,7 +127,7 @@ class SemiFixedVRandomText:
         self._K_dev_exp = list(self._K_dev)
         self._K_gen_exp = list(self._K_gen)
 
-        for i in range(rounds):
+        for i in range(1, rounds+1):
             self._K_dev_exp.extend(key_schedule_rounds(list(self._K_dev), 0, i))
             self._K_gen_exp.extend(key_schedule_rounds(list(self._K_gen), 0, i))
 
