@@ -1,31 +1,70 @@
 import chipwhisperer as cw
 import sys
+from tqdm import trange
 from Crypto.Cipher import AES
 from chipwhisperer.common.utils import util
 from scipy.stats import ttest_ind
 import numpy as np
 import time
-from fixed_v_random_text import FixedVRandomText, FixedVRandomKey, SemiFixedVRandomText
+from ktp import FixedVRandomText, FixedVRandomKey, SemiFixedVRandomText
 
 import matplotlib.pyplot as plt
 
-N = 500
+N = 10000
 
-
-def perform_test(tvla_obj, plot=False):
+def setup_cw(programmer, path):
     scope = cw.scope()
     target = cw.target(scope)
     scope.default_setup()
-    scope.adc.samples = 24400
+    scope.adc.samples = 10000
+    scope.adc.offset = 20000
     time.sleep(0.05)
+    cw.program_target(scope, programmer, path)
+    return scope, target
+
+def create_projects(name):
+    group_1 = cw.create_project("TVLA_{}_group_1".format(name), overwrite=True)
+    group_2 = cw.create_project("TVLA_{}_group_2".format(name), overwrite=True)
+    return group_1, group_2
+
+def perform_test(platform, tvla_obj, plot=False):
+    if platform == "xmega":
+        scope, target = setup_cw(cw.programmers.XMEGAProgrammer, "AES-xmega.hex")
+    elif platform == "stm":
+        scope, target = setup_cw(cw.programmers.STM32FProgrammer, "AES.hex")
+    elif platform == "CW305":
+        scope = cw.scope()
+
+        scope.gain.db = 25
+        scope.adc.samples = 129
+        scope.adc.offset = 0
+        scope.adc.basic_mode = "rising_edge"
+        scope.clock.clkgen_freq = 7370000
+        scope.clock.adc_src = "extclk_x4"
+        scope.trigger.triggers = "tio4"
+        scope.io.tio1 = "serial_rx"
+        scope.io.tio2 = "serial_tx"
+        scope.io.hs2 = "disabled"
+        target = cw.target(scope, cw.targets.CW305, bsfile="cw305_top.bit", force=False)
+        target.vccint_set(1.0)
+        # we only need PLL1:
+        target.pll.pll_enable_set(True)
+        target.pll.pll_outenable_set(False, 0)
+        target.pll.pll_outenable_set(True, 1)
+        target.pll.pll_outenable_set(False, 2)
+
+        # run at 10 MHz:
+        target.pll.pll_outfreq_set(10E6, 1)
+
+        # 1ms is plenty of idling time
+        target.clkusbautooff = True
+        target.clksleeptime = 1
+
     ktp = tvla_obj(16)
-    fixed_project = cw.create_project("TVLA_{}_group_1".format(ktp._name), overwrite=True)
-    random_project = cw.create_project("TVLA_{}_group_2".format(ktp._name), overwrite=True)
+    fixed_project, random_project = create_projects(ktp._name)
 
-    cw.program_target(scope, cw.programmers.STM32FProgrammer, "F:/chipwhisperer-tvla/AES.hex")
-
-    #do fixed test
-    for i in range(N):
+    #collect group1 data
+    for i in trange(N//2):
         key, text = ktp.next_group_A() 
         trace = cw.capture_trace(scope, target, text, key)
         while trace is None:
@@ -34,8 +73,8 @@ def perform_test(tvla_obj, plot=False):
         fixed_project.traces.append(trace)
 
 
-    #do random test
-    for i in range(N):
+    #collect group2 data
+    for i in trange(N//2):
         key, text = ktp.next_group_B() 
         trace = cw.capture_trace(scope, target, text, key)
         while trace is None:
@@ -44,6 +83,7 @@ def perform_test(tvla_obj, plot=False):
         random_project.traces.append(trace)
 
 
+    print(scope.adc.trig_count)
     fixed_project.save()
     random_project.save()
     t = t_test(fixed_project, random_project)
@@ -90,6 +130,14 @@ def check_t_test(t):
     return failed_points
 
 
-perform_test(SemiFixedVRandomText, True)
-perform_test(FixedVRandomKey, True)
-perform_test(FixedVRandomText, True)
+#perform_test("xmega", SemiFixedVRandomText, True)
+#perform_test("xmega", FixedVRandomKey, True)
+#perform_test("xmega", FixedVRandomText, True)
+
+#perform_test("stm", SemiFixedVRandomText, True)
+perform_test("stm", FixedVRandomKey, True)
+perform_test("stm", FixedVRandomText, True)
+
+#perform_test("CW305", SemiFixedVRandomText, True)
+#perform_test("CW305", FixedVRandomKey, True)
+#perform_test("CW305", FixedVRandomText, True)

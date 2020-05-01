@@ -180,7 +180,3 @@ if __name__ == "__main__":
     a = ktp._invert_from_round(b)
     print(a)
     print(b)
-
-
-
-
