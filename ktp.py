@@ -5,6 +5,32 @@ from chipwhisperer.analyzer.utils.aes_funcs import *
 import numpy as np
 from Crypto.Cipher import AES
 
+def _expand_aes_key(key):
+    rounds = 0
+    start = 1
+    if len(key) == 16:
+        rounds = 10
+    elif len(key) == 24:
+        rounds = 12
+    elif len(key) == 32:
+        rounds = 14
+        start = 2
+    else:
+        raise ValueError("Invalid AES key length: {}".format(len(key)))
+
+    exp_key = list(key)
+    for i in range(start, rounds+1):
+        exp_key.extend(key_schedule_rounds(list(key), 0, i))
+
+    return exp_key
+
+def verify_AES(plaintext, key, ciphertext):
+    key_exp = _expand_aes_key(key)
+    cipher = AESCipher(key_exp)
+    calc_ciphertext = bytearray(cipher.cipher_block(list(plaintext)))
+    assert calc_ciphertext == ciphertext, "Failed encryption, {} != {}".format(calc_ciphertext, ciphertext) 
+    return (ciphertext == calc_ciphertext)
+
 class FixedVRandomText:
     _name = "FixedVRandomText"
     def __init__(self, key_len=16):
@@ -28,13 +54,12 @@ class FixedVRandomText:
         else:
             raise ValueError("Invalid key length {}, must be 16, 24, or 32".format(key_len))
 
-        self._K_gen_exp = list(self._K_gen)
-        for i in range(1, rounds+1):
-            self._K_gen_exp.extend(key_schedule_rounds(list(self._K_gen), 0, i))
+        self._K_gen_exp = _expand_aes_key(self._K_gen)
+        self._K_dev_exp = _expand_aes_key(self._K_dev)
         self._cipher = AESCipher(self._K_gen_exp)
 
     def next_group_A(self):
-        """Return key, text for fixed text group"""
+        """Return key, text, ciphertext for fixed text group"""
         return self._K_dev, self._I_fixed
 
     def next_group_B(self):
@@ -70,10 +95,7 @@ class FixedVRandomKey:
         else:
             raise ValueError("Invalid key length {}, must be 16, 24, or 32".format(key_len))
 
-        self._K_gen_exp = list(self._K_gen)
-        for i in range(1, rounds+1):
-            self._K_gen_exp.extend(key_schedule_rounds(list(self._K_gen), 0, i))
-
+        self._K_gen_exp = _expand_aes_key(self._K_gen)
         self._cipher = AESCipher(self._K_gen_exp)
 
     def next_group_A(self):
@@ -124,12 +146,8 @@ class SemiFixedVRandomText:
         else:
             raise ValueError("Invalid key length {}, must be 16, 24, or 32".format(key_len))
 
-        self._K_dev_exp = list(self._K_dev)
-        self._K_gen_exp = list(self._K_gen)
-
-        for i in range(1, rounds+1):
-            self._K_dev_exp.extend(key_schedule_rounds(list(self._K_dev), 0, i))
-            self._K_gen_exp.extend(key_schedule_rounds(list(self._K_gen), 0, i))
+        self._K_dev_exp = _expand_aes_key(self._K_dev)
+        self._K_gen_exp = _expand_aes_key(self._K_gen)
 
         self._dev_cipher = AESCipher(self._K_dev_exp)
         self._cipher = AESCipher(self._K_gen_exp)

@@ -6,11 +6,10 @@ from chipwhisperer.common.utils import util
 from scipy.stats import ttest_ind
 import numpy as np
 import time
-from ktp import FixedVRandomText, FixedVRandomKey, SemiFixedVRandomText
+from ktp import FixedVRandomText, FixedVRandomKey, SemiFixedVRandomText, verify_AES
 
 import matplotlib.pyplot as plt
 
-N = 100
 
 def setup_cw(programmer, path):
     scope = cw.scope()
@@ -27,13 +26,12 @@ def create_projects(name):
     group_2 = cw.create_project("TVLA_{}_group_2".format(name), overwrite=True)
     return group_1, group_2
 
-def perform_test(platform, tvla_obj, plot=False):
+def perform_test(platform, tvla_obj, key_len=16, plot=False):
+    N = 100
     if platform == "xmega":
         scope, target = setup_cw(cw.programmers.XMEGAProgrammer, "AES-xmega.hex")
-        N = 100
     elif platform == "stm":
         scope, target = setup_cw(cw.programmers.STM32FProgrammer, "AES-mbed.hex")
-        N = 100
     elif platform == "CW305":
         scope = cw.scope()
 
@@ -62,17 +60,23 @@ def perform_test(platform, tvla_obj, plot=False):
         target.clkusbautooff = True
         target.clksleeptime = 1
         N = 2500
+    elif platform == "K82F":
+        scope = cw.scope()
+        target = cw.target(scope)
+        scope.default_setup()
+        scope.adc.samples=3500
 
-    ktp = tvla_obj(16)
+    ktp = tvla_obj(key_len)
     fixed_project, random_project = create_projects(ktp._name)
 
-    #collect group1 data
     for i in trange(N):
         key, text = ktp.next_group_A() 
         trace = cw.capture_trace(scope, target, text, key)
         while trace is None:
             trace = cw.capture_trace(scope, target, text, key)
 
+        if not verify_AES(text, key, trace.textout):
+            raise ValueError("Encryption failed")
         fixed_project.traces.append(trace)
 
         key, text = ktp.next_group_B() 
@@ -80,6 +84,8 @@ def perform_test(platform, tvla_obj, plot=False):
         while trace is None:
             trace = cw.capture_trace(scope, target, text, key)
         random_project.traces.append(trace)
+        if not verify_AES(text, key, trace.textout):
+            raise ValueError("Encryption failed")
 
 
 
@@ -138,9 +144,13 @@ def check_t_test(t):
 #perform_test("xmega", FixedVRandomText, True)
 
 #perform_test("stm", SemiFixedVRandomText, True)
-perform_test("stm", FixedVRandomKey, True)
-perform_test("stm", FixedVRandomText, True)
+#perform_test("stm", FixedVRandomKey, True)
+#perform_test("stm", FixedVRandomText, True)
 
 #perform_test("CW305", SemiFixedVRandomText, True)
 #perform_test("CW305", FixedVRandomKey, True)
 #perform_test("CW305", FixedVRandomText, True)
+
+#perform_test("K82F", SemiFixedVRandomText, 32, True)
+perform_test("K82F", FixedVRandomKey, 32, True)
+perform_test("K82F", FixedVRandomText, 32, True)
