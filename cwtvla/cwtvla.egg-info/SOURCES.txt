@@ -1,0 +1,6 @@
+setup.py
+cwtvla.egg-info/PKG-INFO
+cwtvla.egg-info/SOURCES.txt
+cwtvla.egg-info/dependency_links.txt
+cwtvla.egg-info/requires.txt
+cwtvla.egg-info/top_level.txt
