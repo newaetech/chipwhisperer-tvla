@@ -1,8 +1,8 @@
 import numpy as np
 from scipy.stats import ttest_ind
 import chipwhisperer as cw
-from aes_cipher import AESCipher
-from ktp import verify_AES
+from .aes_cipher import AESCipher
+from .ktp import verify_AES
 
 def create_projects(name):
     group_1 = cw.create_project("TVLA_{}_group_1".format(name), overwrite=True)
@@ -40,20 +40,24 @@ def do_tvla(scope, target, tvla_obj, N, key_len=16, save=False):
 
 
 def t_test(projects):
-    group_len = len(projects[0].traces) // 2
+    group1_len = len(projects[0].traces) // 2
+    group2_len = len(projects[1].traces) // 2
     trace_len = len(projects[0].waves[0])
-    project_1_np = [np.zeros([trace_len, group_len]), np.zeros([trace_len, group_len])]
-    project_2_np = [np.zeros([trace_len, group_len]), np.zeros([trace_len, group_len])]
+    project_1_np = [np.zeros([trace_len, group1_len]), np.zeros([trace_len, group1_len])]
+    project_2_np = [np.zeros([trace_len, group2_len]), np.zeros([trace_len, group2_len])]
     t = np.zeros([trace_len, 2])
 
-    for i in range(group_len):
+    for i in range(group1_len):
         project_1_np[0][:,i] = projects[0].waves[i]
-        project_1_np[1][:,i] = projects[0].waves[i + group_len]
-        project_2_np[0][:,i] = projects[1].waves[i]
-        project_2_np[1][:,i] = projects[1].waves[i + group_len]
+        project_1_np[1][:,i] = projects[0].waves[i + group1_len]
 
+    for i in range(group2_len):
+        project_2_np[0][:,i] = projects[1].waves[i]
+        project_2_np[1][:,i] = projects[1].waves[i + group2_len]
     t = np.zeros([2, trace_len])
     for i in range(trace_len):
+        #t[0][i] = ttest_ind(projects[0].waves[:group1_len,i], projects[1].waves[:,i], equal_var=False)[0]
+        #t[1][i] = ttest_ind(projects[0].waves[:,i], project_2_np[1][i], equal_var=False)[0]
         t[0][i] = ttest_ind(project_1_np[0][i], project_2_np[0][i], equal_var=False)[0]
         t[1][i] = ttest_ind(project_1_np[1][i], project_2_np[1][i], equal_var=False)[0]
 

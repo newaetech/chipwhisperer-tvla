@@ -1,7 +1,7 @@
 from chipwhisperer.common.utils import util
 import warnings
-from aes_cipher import AESCipher
-from key_schedule import key_schedule_rounds
+from .aes_cipher import AESCipher
+from .key_schedule import key_schedule_rounds
 import numpy as np
 
 def _expand_aes_key(key):
@@ -29,6 +29,7 @@ def verify_AES(plaintext, key, ciphertext):
     calc_ciphertext = bytearray(cipher.cipher_block(list(plaintext)))
     return (ciphertext == calc_ciphertext)
 
+
 class FixedVRandomText:
     _name = "FixedVRandomText"
     def __init__(self, key_len=16):
@@ -55,6 +56,7 @@ class FixedVRandomText:
         self._K_gen_exp = _expand_aes_key(self._K_gen)
         self._K_dev_exp = _expand_aes_key(self._K_dev)
         self._cipher = AESCipher(self._K_gen_exp)
+        self._dev_cipher = AESCipher(self._K_dev_exp)
 
     def next_group_A(self):
         """Return key, text, ciphertext for fixed text group"""
@@ -119,7 +121,7 @@ class FixedVRandomKey:
 
 class SemiFixedVRandomText:
     _name = "SemiFixedVRandomText"
-    def __init__(self, key_len=16, round=None):
+    def __init__(self, key_len=16):
         self._key_len = key_len
         self._I_0 = bytearray([0x00] * 16)
         rounds = 10

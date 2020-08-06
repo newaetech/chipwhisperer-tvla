@@ -1,7 +1,7 @@
 import chipwhisperer as cw
 import time
-from .ktp import FixedVRandomText, FixedVRandomKey, SemiFixedVRandomText
-from .tvla_cw import do_tvla, check_t_test
+from cwtvla.ktp import FixedVRandomText, FixedVRandomKey, SemiFixedVRandomText, verify_AES
+from cwtvla.tvla_cw import do_tvla, check_t_test, create_projects, t_test
 import matplotlib.pyplot as plt
 
 def setup_device(name):
@@ -68,7 +68,76 @@ def perform_test(platform, tvla_obj, key_len=16, plot=False, N=1000):
     scope.dis()
     target.dis()
 
+# random v random tests:
 
+# 128 bits of sbox outputs
+# 128 bits of round outputs
+# XOR of round input and round output (128bits)
+# SBox outputs (first 2 bytes, 2x256 values)
+# Round outputs
+# XOR of round input and output
+def random_v_random_test(platform, plot=True, key_len=16, N=1000):
+    scope,target = setup_device(platform)
+    ktp = FixedVRandomText(key_len)
+    project = cw.create_project("random_v_random_tests.cwp", overwrite=True)
+    for i in range(2*N):
+        key, text = ktp.next_group_B()
+        trace = cw.capture_trace(scope, target, text, key)
+        while trace is None:
+            trace = cw.capture_trace(scope, target, text, key)
+
+        if not verify_AES(text, key, trace.textout):
+            raise ValueError("Encryption failed")
+        project.traces.append(trace)
+
+    print(scope.adc.trig_count)
+
+    # now need to separate based on selection function
+    def sbox_selection_function(text, round, byte, bit):
+        # just do bit 0 of 2nd round sbox output for now
+        cipher = ktp._dev_cipher
+        state = list(text)
+        cipher._add_round_key(state, 0)
+
+        for round in range(1, round):
+            cipher._sub_bytes(state)
+            cipher._shift_rows(state)
+            cipher._mix_columns(state, False)
+            cipher._add_round_key(state, round)
+
+        cipher._sub_bytes(state)
+        return state[byte] & (1 << bit)
+
+    # doing it this way to make it easier to change to different selection function with same data
+    projects = create_projects("random_v_random")
+
+    for i in range(2*N):
+        if sbox_selection_function(project.textins[i], 7, 2, 3):
+            projects[0].traces.append(project.traces[i])
+        else:
+            projects[1].traces.append(project.traces[i])
+
+    print(len(projects[0].traces))
+    print(len(projects[1].traces))
+    t_val = t_test(projects)
+    for p in projects:
+        p.close(save=False)
+
+    fail_points = check_t_test(t_val)
+    if len(fail_points) > 0:
+        print("Test failed at points {}".format(fail_points))
+    else:
+        print("Passed test")
+
+    if plot:
+        plt.plot(t_val[0])
+        plt.plot(t_val[1])
+        plt.show()
+
+    scope.dis()
+    target.dis()
+
+random_v_random_test("STM32F3-mbed", N=1000)
 #def perform_test(platform, tvla_obj, key_len=16, plot=False, N=1000):
 #perform_test("XMEGA", SemiFixedVRandomText, plot=True)
 #perform_test("XMEGA", FixedVRandomKey, plot=True)
@@ -82,7 +151,7 @@ def perform_test(platform, tvla_obj, key_len=16, plot=False, N=1000):
 #perform_test("STM32F3", FixedVRandomKey, plot=True)
 #perform_test("STM32F3", FixedVRandomText, plot=True)
 
-perform_test("STM32F4", SemiFixedVRandomText, plot=True)
+#perform_test("STM32F4", SemiFixedVRandomText, plot=True)
 #perform_test("STM32F4", FixedVRandomKey, plot=True)
 #perform_test("STM32F4", FixedVRandomText, plot=True)
 
