@@ -1,7 +1,9 @@
 import chipwhisperer as cw
 import time
+import zarr
+import numpy as np
 from cwtvla.ktp import FixedVRandomText, FixedVRandomKey, SemiFixedVRandomText, verify_AES
-from cwtvla.tvla_cw import do_tvla, check_t_test, create_projects, t_test
+import cwtvla.analysis as analysis
 import matplotlib.pyplot as plt
 from tqdm import trange
 
@@ -50,62 +52,20 @@ def setup_device(name):
 
     return scope,target
 
-def perform_test(platform, tvla_obj, key_len=16, plot=False, N=1000):
-    scope,target = setup_device(platform)
-
-    t_val = do_tvla(scope, target, tvla_obj, N, key_len)
-
-    fail_points = check_t_test(t_val)
-    if len(fail_points) > 0:
-        print("Test failed at points {}".format(fail_points))
-    else:
-        print("Passed test")
-
-    if plot:
-        plt.plot(t_val[0])
-        plt.plot(t_val[1])
-        plt.show()
-
-    scope.dis()
-    target.dis()
-
-# random v random tests:
-
-# 128 bits of sbox outputs
-# 128 bits of round outputs
-# XOR of round input and round output (128bits)
-# SBox outputs (first 2 bytes, 2x256 values)
-# Round outputs
-# XOR of round input and output
-from scipy.stats import ttest_ind
-
-def t_test_np(group1, group2):
-    trace_len = len(group1[0])
-    group1_len = len(group1) // 2
-    group2_len = len(group2) // 2
-    t = np.zeros([2, trace_len], dtype='float64')
-    #print("-------------")
-    #print(ttest_ind(group1[:group1_len], group2[:group2_len], axis=0, equal_var=False)[0])
-    #print("-------------")
-    #t[0] = ttest_ind(group1[:group])
-    t[0] = ttest_ind(group1[:group1_len], group2[:group2_len], axis=0, equal_var=False)[0]
-    t[1] = ttest_ind(group1[group1_len:], group2[group2_len:], axis=0, equal_var=False)[0]
-    #for i in range(trace_len):
-        #t[0][i] = ttest_ind(group1[:group1_len, i], group2[:group2_len, i], equal_var=False)[0]
-        #t[1][i] = ttest_ind(group1[group1_len:, i], group2[group1_len:, i], equal_var=False)[0]
-
-    #print("-------------")
-    #print(t[0])
-    #print("-------------")
-    return t
-
-import numpy as np
-def random_v_random_test(platform, plot=True, key_len=16, N=1000):
+def random_v_random_capture(platform, key_len=16, N=10000):
+    #may not be working
     scope,target = setup_device(platform)
     ktp = FixedVRandomText(key_len)
-    waves = np.zeros((2*N, scope.adc.samples), dtype='float64')
-    textins = np.zeros((2*N, 16), dtype='uint8')
-    for i in range(2*N):
+    store = zarr.DirectoryStore('data/{}-{}-{}.zarr'.format(platform,N,key_len))
+    root = zarr.group(store=store, overwrite=True)
+
+    zwaves = root.zeros('traces/waves', shape=(2*N, scope.adc.samples), chunks=(2500, None), dtype='float64')
+    ztextins = root.zeros('traces/textins', shape=(2*N, 16), chunks=(2500, None), dtype='uint8')
+
+    waves = zwaves[:,:]
+    textins = ztextins[:,:]
+    
+    for i in trange(2*N):
         key, text = ktp.next_group_B()
         trace = cw.capture_trace(scope, target, text, key)
         while trace is None:
@@ -116,99 +76,60 @@ def random_v_random_test(platform, plot=True, key_len=16, N=1000):
         #project.traces.append(trace)
         waves[i, :] = trace.wave
         textins[i, :] = np.array(text)
-
-    print(scope.adc.trig_count)
-
-    # now need to separate based on selection function
-    def sbox_selection_function(text, round, byte, bit):
-        cipher = ktp._dev_cipher
-        state = list(text)
-        cipher._add_round_key(state, 0)
-
-        for round in range(1, round):
-            cipher._sub_bytes(state)
-            cipher._shift_rows(state)
-            cipher._mix_columns(state, False)
-            cipher._add_round_key(state, round)
-
-        cipher._sub_bytes(state)
-        return state[byte] & (1 << bit)
-
-    def roundout_selection_function(text, round, byte, bit):
-        cipher = ktp._dev_cipher
-        state = list(text)
-        cipher._add_round_key(state, 0)
-
-        for round in range(1, round):
-            cipher._sub_bytes(state)
-            cipher._shift_rows(state)
-            cipher._mix_columns(state, False)
-            cipher._add_round_key(state, round)
-
-        return state[byte] & (1 << bit)
-
-    def roundinout_selection_function(text, round, byte, bit):
-        cipher = ktp._dev_cipher
-        state = list(text)
-        cipher._add_round_key(state, 0)
-
-        for round in range(1, round):
-            rin = list(state)
-            cipher._sub_bytes(state)
-            cipher._shift_rows(state)
-            cipher._mix_columns(state, False)
-            cipher._add_round_key(state, round)
-
-        return (state[byte] ^ rin[byte]) & (1 << bit)
-
-    # doing it this way to make it easier to change to different selection function with same data
-    for round in trange(2, 8):
-        for byte in range(8):
-            for bit in range(1):
-                truth_array = np.array([roundinout_selection_function(textins[i], round, byte, bit) for i in range(2*N)])
-                group1 = waves[truth_array != 0]
-                group2 = waves[truth_array == 0]
-                t_val = t_test_np(group1, group2)
-
-                fail_points = check_t_test(t_val)
-                if len(fail_points) > 0:
-                    print("Test failed at points {}".format(fail_points))
-                else:
-                    print("Passed test")
-
-                if plot:
-                    plt.cla()
-                    plt.plot(t_val[0])
-                    plt.plot(t_val[1])
-                    plt.draw()
-                    plt.pause(0.00001)
+    zwaves[:,:] = waves[:,:]
+    ztextins[:,:] = textins[:,:]
+    print("Last encryption took {} samples".format(scope.adc.trig_count))
 
 
-    scope.dis()
-    target.dis()
 
-random_v_random_test("STM32F3-mbed", N=1000)
-#def perform_test(platform, tvla_obj, key_len=16, plot=False, N=1000):
-#perform_test("XMEGA", SemiFixedVRandomText, plot=True)
-#perform_test("XMEGA", FixedVRandomKey, plot=True)
-#perform_test("XMEGA", FixedVRandomText, plot=True)
+def do_invariant_test(ktp_class, platform, N=10000, key_len=16):
+    # may not be working
+    scope, target = setup_device(platform)
+    #scope.adc.offset = 20000
+    ktp = ktp_class(key_len)
+    #ktp = FixedVRandomKey(key_len)
+    #store = zarr.DirectoryStore('SFvR/{}-{}-{}-{}.zarr'.format(platform, ktp._name, N, key_len))
+    #root = zarr.group(store=store, overwrite=True)
+    root = zarr.group("")
+    zgroup1 = root.zeros('traces/group1', shape=(N, scope.adc.samples), chunks=(2500, None), dtype='float64')
+    zgroup2 = root.zeros('traces/group2', shape=(N, scope.adc.samples), chunks=(2500, None), dtype='float64')
 
-#perform_test("STM32F3", SemiFixedVRandomText, plot=True)
-#perform_test("STM32F3", FixedVRandomKey, plot=True)
-#perform_test("STM32F3", FixedVRandomText, plot=True, N=50)
+    group1 = zgroup1[:,:]
+    group2 = zgroup2[:,:]
+    for i in trange(N):
+        key, text = ktp.next_group_A()
+        trace = cw.capture_trace(scope, target, text, key)
+        while trace is None:
+            trace = cw.capture_trace(scope, target, text, key)
 
-#perform_test("STM32F3", SemiFixedVRandomText, plot=True)
-#perform_test("STM32F3", FixedVRandomKey, plot=True)
-#perform_test("STM32F3", FixedVRandomText, plot=True)
+        if not verify_AES(text, key, trace.textout):
+            raise ValueError("Encryption failed")
+        group1[i,:] = trace.wave[:]
 
-#perform_test("STM32F4", SemiFixedVRandomText, plot=True)
-#perform_test("STM32F4", FixedVRandomKey, plot=True)
-#perform_test("STM32F4", FixedVRandomText, plot=True)
+        key, text = ktp.next_group_B() 
+        trace = cw.capture_trace(scope, target, text, key)
+        while trace is None:
+            trace = cw.capture_trace(scope, target, text, key)
 
-#perform_test("CW305", SemiFixedVRandomText, plot=True)
-#perform_test("CW305", FixedVRandomKey, plot=True)
-#perform_test("CW305", FixedVRandomText, True)
+        group2[i,:] = trace.wave[:]
+        if not verify_AES(text, key, trace.textout):
+            raise ValueError("Encryption failed")
 
-#perform_test("K82F", SemiFixedVRandomText, 32, True)
-#perform_test("K82F", FixedVRandomKey, 32, True)
-#perform_test("K82F", FixedVRandomText, 32, True)
+    
+if __name__ == "__main__":
+    from guppy import hpy
+    hp = hpy()
+    hp.setrelheap()
+    z = zarr.open("SFvR/STM32F4-SemiFixedVRandomText-5000-16.zarr")
+    print(z.tree())
+    group1 = z.traces.group1[:,:]
+    group2 = z.traces.group2[:,:]
+    print(hp.heap())
+    t = analysis.t_test(group1, group2)
+    import matplotlib.pyplot as plt
+    plt.figure()
+    plt.plot(t[0])
+    plt.plot(t[1])
+    plt.show()
+    #func = analysis.roundinout_hd
+    #analysis.eval_rand_v_rand(waves, textins, func, round_range=range(2,3), plot=True)
