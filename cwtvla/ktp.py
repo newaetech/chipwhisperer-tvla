@@ -3,6 +3,7 @@ import warnings
 from .aes_cipher import AESCipher
 from .key_schedule import key_schedule_rounds
 import numpy as np
+import random
 
 def _expand_aes_key(key):
     rounds = 0
@@ -121,10 +122,12 @@ class FixedVRandomKey:
 
 class SemiFixedVRandomText:
     _name = "SemiFixedVRandomText"
-    def __init__(self, key_len=16):
+    def __init__(self, key_len=16, round=None):
         self._key_len = key_len
         self._I_0 = bytearray([0x00] * 16)
         rounds = 10
+        random.seed()
+        self._round = round
         self._I_semi_fixed = util.hexStrToByteArray("8B 8A 49 0B DF 7C 00 BD D7 E6 06 6C 61 00 24 12")
         if key_len == 16:
             if not round:
@@ -166,7 +169,7 @@ class SemiFixedVRandomText:
             self._dev_cipher._i_shift_rows(text)
             self._dev_cipher._i_sub_bytes(text)
 
-        self._dev_cipher._add_round_key(text, round)
+        self._dev_cipher._add_round_key(text, 0)
         return bytearray(text)
 
     def next_group_A(self):
@@ -175,7 +178,12 @@ class SemiFixedVRandomText:
             warnings.filterwarnings("ignore")
             self._state_start += 1
 
-        self._I_semi_fixed[:4] = int(self._state_start).to_bytes(4, "big")
+        x = int(self._state_start).to_bytes(4, "big")
+        #x = random.getrandbits(32)
+        for i in range(4):
+            self._I_semi_fixed[-i-1] = x[i]
+            #self._I_semi_fixed[-i-1] = (x >> 8*i) & 0xFF
+
 
         #invert to start of AES
         text = self._invert_from_round(self._I_semi_fixed)
