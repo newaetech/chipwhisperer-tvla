@@ -1,6 +1,7 @@
 # do capture for TVLA
 
 #... setup, get scope, target
+from tqmd import trange
 import chipwhisperer as cw
 scope = cw.scope()
 target = cw.target(scope)
@@ -10,6 +11,7 @@ scope.default_setup()
 N = 50000 #total traces = 2*n
 
 from cwtvla.ktp import FixedVRandomText, verify_AES
+import numpy as np
 key_len = 16
 ktp = FixedVRandomText(key_len)
 
@@ -50,3 +52,30 @@ plt.figure()
 plt.plot(t_val[0])
 plt.plot(t_val[1])
 plt.show()
+
+# do rand_v_rand
+## setup scope,target
+N = 100000
+
+import numpy as np
+ktp = FixedVRandomText(key_len)
+waves = np.zeros((N, scope.adc.samples), dtype='float64')
+textins = np.zeros((N, 16), dtype='uint8')
+
+for i in trange(N):
+    key, text = ktp.next_group_B()
+    trace = cw.capture_trace(scope, target, text, key)
+    while trace is None:
+        trace = cw.capture_trace(scope, target, text, key)
+
+    if not verify_AES(text, key, trace.textout):
+        raise ValueError("Encryption failed")
+    #project.traces.append(trace)
+    waves[i, :] = trace.wave
+    textins[i, :] = np.array(text)
+
+## test rand_v_rand
+from cwtvla.analysis import eval_rand_v_rand, roundinout_hd
+
+eval_rand_v_rand(waves, textins, roundinout_hd, round_range=range(2,3), \
+ byte_range=range(0, 2), bit_range=range(0, 2), plot=True)
