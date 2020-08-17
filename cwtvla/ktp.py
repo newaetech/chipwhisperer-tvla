@@ -25,6 +25,8 @@ def _expand_aes_key(key):
     return exp_key
 
 def verify_AES(plaintext, key, ciphertext):
+    """ Verifies that AES(plaintext, key) == ciphertext
+    """
     key_exp = _expand_aes_key(key)
     cipher = AESCipher(key_exp)
     calc_ciphertext = bytearray(cipher.cipher_block(list(plaintext)))
@@ -32,6 +34,17 @@ def verify_AES(plaintext, key, ciphertext):
 
 
 class FixedVRandomText:
+    """ Key text pairs for FixedVRandomText TVLA
+
+    Usage::
+
+        import cwtvla
+        ktp = cwtvla.tkp.FixedVRandomText(key_len=16) #16 byte key - AES128
+        key, text ktp.next_group_A() # Fixed text, fixed key
+        key, text ktp.next_group_B() # Random text, fixed key
+
+    :code:`next_group_B()` can also be used for Random V Random captures
+    """
     _name = "FixedVRandomText"
     def __init__(self, key_len=16):
         self._key_len = key_len
@@ -75,6 +88,16 @@ class FixedVRandomText:
 
 
 class FixedVRandomKey:
+    """ Key text pairs for FixedVRandomKey TVLA
+
+    Usage::
+
+        import cwtvla
+        ktp = cwtvla.tkp.FixedVRandomKey(key_len=16) #16 byte key - AES128
+        key, text ktp.next_group_A() # Random text, fixed key
+        key, text ktp.next_group_B() # Random text, Random key
+
+    """
     _name = "FixedVRandomKey"
     def __init__(self, key_len=16):
         self._key_len = key_len
@@ -121,6 +144,19 @@ class FixedVRandomKey:
         return key, text
 
 class SemiFixedVRandomText:
+    """ Key text pairs for SemiFixedVRandomText.
+
+    Sets state in selected round to 0x8B8A490BDF7C00BDD7E6066Cxxxxxxxx. Varies the last bits
+    and reverses to get input plaintext.
+
+    Usage::
+
+        import cwtvla
+        ktp = cwtvla.tkp.SemiFixedVRandomText(key_len=16, round=5) #16 byte key - AES128, reverse from round 5
+        key, text ktp.next_group_A() # Semi fixed text, Fixed key
+        key, text ktp.next_group_B() # Random text, Fixed key 
+
+    """
     _name = "SemiFixedVRandomText"
     def __init__(self, key_len=16, round=None):
         self._key_len = key_len

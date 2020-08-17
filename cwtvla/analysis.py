@@ -8,6 +8,16 @@ import tqdm
 
 
 def leakage_lookup(operation, round):
+    """ Get the number representation for operation happening in round
+
+    Args:
+        operation (str, None): One of 'subbytes', 'shiftrows', 'mixcolumns', or 'addroundkey'.
+                                If None, 0 is returned
+        round (int): Which round the operation is occuring in
+
+    Returns:
+        A number corresponding to the desired operation
+    """
     opn = 0
     if operation == "subbytes":
         opn = 0
@@ -23,6 +33,19 @@ def leakage_lookup(operation, round):
     return 2+(opn)+4*(round-1)
 
 def t_test(group1, group2):
+    """ Perform a t_test between two numpy arrays.
+
+    Splits the data between the first and second half of each group
+
+    Args:
+        group1 (numpy.array): Group 1
+        group2 (numpy.array): Group 2
+
+    Returns:
+        A numpy with two elements spanning the length of the traces. The
+        first is between the first half of groups 1 and 2. The second
+        is between the second half of the groups.
+    """
     trace_len = len(group1[0])
     group1_len = len(group1) // 2
     group2_len = len(group2) // 2
@@ -32,6 +55,23 @@ def t_test(group1, group2):
     return t
 
 def leakage_func_bit(text, byte, bit, cipher, op_in, op_out):
+    """ A generic leakage function for testing a bit in the AES state
+
+    Tests between operations op_in and op_out. Assuming st0 is the state
+    after operation op_in and st1 is the state after operation op_out,
+    returns (st0[byte] ^ st1[byte]) & (1 << bit)
+
+    Args:
+        text (list): The input plaintext
+        byte (int): Which byte to get the leakage for
+        bit (int): Which bit to get the leakage for
+        cipher (AESCipher): The cipher used for encryption
+        op_in (int): Use the state after operation op_in. If 0, an array of 0 is used (useful for HW)
+        op_out (int): Use the state after operation op_out. If 0, an array of 0 is used (useful for HW)
+
+    Returns:
+        1 if the bit under test is 1, 0 if it is 0
+    """
     state = list(text)
     cipher._add_round_key(state, 0)
     if op_in == op_out:
@@ -60,9 +100,26 @@ def leakage_func_bit(text, byte, bit, cipher, op_in, op_out):
 
     cipher._add_round_key(state, cipher._Nr)
 
-    return (states[op_in][byte] ^ states[op_out][byte]) & (1 << bit)
+    return ((states[op_in][byte] ^ states[op_out][byte]) >> bit) & 1
 
 def leakage_func_byte(text, byte, val, cipher, op_in, op_out):
+    """ A generic leakage function for testing the value AES state
+
+    Tests between operations op_in and op_out. Assuming st0 is the state
+    after operation op_in and st1 is the state after operation op_out,
+    returns (st0[byte] ^ st1[byte]) == val
+
+    Args:
+        text (list): The input plaintext
+        byte (int): Which byte to get the leakage for
+        val (int): The val to separate based on
+        cipher (AESCipher): The cipher used for encryption
+        op_in (int): Use the state after operation op_in. If 0, an array of 0 is used (useful for HW)
+        op_out (int): Use the state after operation op_out. If 0, an array of 0 is used (useful for HW)
+
+    Returns:
+        1 if the bit under test is 1, 0 if it is 0
+    """
     #bit unused
     state = list(text)
     cipher._add_round_key(state, 0)
@@ -101,6 +158,24 @@ sboxinout_hd = lambda text, byte, bit, cipher, rnd: leakage_func_bit(text, byte,
 generic_leakage_hw = lambda text, byte, bit, cipher, op_in: leakage_func_bit(text, byte, bit, cipher, op_in, 0)
 
 def eval_rand_v_rand(waves, textins, func, key_len=16, round_range=None, byte_range=None, bit_range=None, plot=False):
+    """ Evaluate rand_v_rand traces using a leakage function.
+
+    Separates waves using textins and the leakage func, then does a t_test between them.
+
+    Done for rounds in round_range, for bytes in byte_range, and bits (or vals) in bit range. Can
+    also plot for each test.
+
+    Args:
+        waves (np.array): Rand V Rand Trace waves
+        textins (np.array): Rand V Rand plaintexts
+        func (function(textin, byte, bit, cipher, round)): Leakage to function used to separate traces
+        key_len (int): length of key used in bytes
+        round_range (iterable): Rounds to test
+        byte_range (iterable): Bytes to test
+        bit_range (iterable): Bits to test (or vals if using a byte leakage func)
+        plot (bool): Plot t_test results?
+
+    """
     ktp = FixedVRandomText(key_len)
     cipher = ktp._dev_cipher
     if round_range is None:
@@ -130,6 +205,8 @@ def eval_rand_v_rand(waves, textins, func, key_len=16, round_range=None, byte_ra
 
 
 def check_t_test(t):
+    """Check the results of the t_test and return points where it failed.
+    """
     failed_points = []
     for i in range(len(t[0])):
         if ((t[0][i]) > 4.5) and ((t[1][i]) > 4.5):
