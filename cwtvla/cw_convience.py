@@ -8,6 +8,16 @@ import numpy as np
 
 
 def setup_device(name):
+    """Convience function for setting up and programing a CW/Target pair
+
+    Args:
+        name (str): String representing the target configuration. Currently
+                    supports 'STM32F3', 'CW305', 'XMEGA', 'STM32F3-mbed',
+                    'K82F', 'STM32F4'
+
+    returns:
+        Setup scope and target objects
+    """
     scope = cw.scope()
     if name == "CW305":
         scope.gain.db = 25
@@ -52,7 +62,21 @@ def setup_device(name):
 
     return scope,target
 
-def capture_invariant(scope, target, ktp_class, N=10000, key_len=16, group1=None, group2=None):
+def capture_non_specific(scope, target, ktp_class, N=10000, key_len=16, group1=None, group2=None):
+    """ Capture data for a non-specific TVLA t-test
+
+    Args:
+        scope (CW scope object): Already setup scope object
+        target (CW target object): Already setup target object
+        ktp_class (ktp): Non specific KTP object (FixedVRandText, Key, etc)
+        N (int): Number of traces to capture for each dataset (will end up with 2*N traces total)
+        key_len (int): 16 for AES-128, 32 for AES-256
+        group1 (np.array): Optional array object for storing traces in
+        group2 (np.array): Optional array object for storing traces in
+
+    Returns:
+        group1, group2
+    """
     ktp = ktp_class(key_len)
     if group1 is None:
         group1 = np.zeros((N, scope.adc.samples), dtype='float64')
@@ -81,6 +105,19 @@ def capture_invariant(scope, target, ktp_class, N=10000, key_len=16, group1=None
     return group1, group2
 
 def capture_rand(scope, target, N=10000, key_len=16, waves=None, textins=None):
+    """ Capture traces for a rand_v_rand TVLA t-test
+
+    Args:
+        scope (CW scope object): Setup scope object
+        target (CW target object): Setup target object
+        N (int): Number of traces to capture
+        key_len (int): 16 for AES-128, 32 for AES-256
+        waves (np.array): Optional array object for storing traces in
+        textins (np.array): Optional array object for storing plaintexts in
+
+    Returns:
+        waves, textins
+    """
     ktp = FixedVRandomText(key_len)
     if waves is None:
         waves = np.zeros((N, scope.adc.samples), dtype='float64')
@@ -99,8 +136,18 @@ def capture_rand(scope, target, N=10000, key_len=16, waves=None, textins=None):
 
     return waves, textins
 
-def capture_all(platform, N=10000, key_len=16):
-    scope, target = setup_device(platform)
+def capture_all(scope, target, platform, N=10000, key_len=16):
+    """ Do all three non-specific captures and a Rand_V_Rand capture.
+
+    Stores the results in a CWTVLA standard zarr array
+
+    Args:
+        scope (CW scope object): Setup scope object
+        target (CW target object): Setup target object
+        platform (str): What to call the set in the zarr array
+        N (int): Number of traces to capture
+        key_len (int): 16 for AES-128, 32 for AES-256
+    """
     ktps = (FixedVRandomText, SemiFixedVRandomText, FixedVRandomKey)
     z = zarr.open_group("data/CWData.zarr", mode='a')
     z_plat = z.create_group("{}".format(platform), overwrite=True)
@@ -109,7 +156,7 @@ def capture_all(platform, N=10000, key_len=16):
             chunks=(2500, None), dtype='float64')
         group2 = z_plat.zeros("{}-{}/traces/group2".format(ktp._name, key_len), shape=(N, scope.adc.samples), \
             chunks=(2500, None), dtype='float64')
-        group1[:,:], group2[:,:] = capture_invariant(scope, target, ktp, N, key_len)
+        group1[:,:], group2[:,:] = capture_non_specific(scope, target, ktp, N, key_len)
 
     # do rand now
     waves = z_plat.zeros("RandVRand-{}/traces/waves".format(key_len), shape=(N, scope.adc.samples), \
@@ -119,7 +166,13 @@ def capture_all(platform, N=10000, key_len=16):
 
     waves[:,:], textins[:,:] = capture_rand(scope, target, N, key_len) 
 
-def test_cw_invariant(platform, key_len=16):
+def test_cw_non_specific(platform, key_len=16):
+    """ Test a platform's non_specific traces
+
+    Args:
+        platform (str): The target object's name
+        key_len (int): 16 for AES-128, 32 for AES-256
+    """
     import matplotlib.pyplot as plt
     ktps = (FixedVRandomText, SemiFixedVRandomText, FixedVRandomKey)
     for ktp in ktps:
