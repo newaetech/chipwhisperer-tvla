@@ -10,6 +10,9 @@ import tqdm
 def leakage_lookup(operation, round):
     """ Get the number representation for operation happening in round
 
+    Note that these all correspond to the output of the operation, so
+    'subbytes' is the output of the SBox, not the input.
+
     Args:
         operation (str, None): One of 'subbytes', 'shiftrows', 'mixcolumns', or 'addroundkey'.
                                 If None, 0 is returned
@@ -20,18 +23,18 @@ def leakage_lookup(operation, round):
 
     """
     opn = 0
-    if operation == "subbytes":
-        opn = 0
-    if operation == "shiftrows":
-        opn = 1
-    if operation == "mixcolumns":
-        opn = 2
     if operation == "addroundkey":
+        opn = 0
+    if operation == "subbytes":
+        opn = 1
+    if operation == "shiftrows":
+        opn = 2
+    if operation == "mixcolumns":
         opn = 3
     if operation is None:
         return 0
 
-    return 2+(opn)+4*(round-1)
+    return 1+(opn)+4*(round-1)
 
 def t_test(group1, group2):
     """ Perform a t_test between two numpy arrays.
@@ -158,8 +161,8 @@ roundinout_hd = lambda text, byte, bit, cipher, rnd: leakage_func_bit(text, byte
 sboxinout_hd = lambda text, byte, bit, cipher, rnd: leakage_func_bit(text, byte, bit, cipher, 2+4*(rnd-1)-1, 2+4*(rnd-1))
 generic_leakage_hw = lambda text, byte, bit, cipher, op_in: leakage_func_bit(text, byte, bit, cipher, op_in, 0)
 
-def construct_leakage(func, operation_in, operation_out):
-    return lambda text, byte, bit, cipher, rnd: func(text, byte, bit, cipher, leakage_lookup(operation_in, rnd), leakage_lookup(operation_out, rnd))
+def construct_leakage(func, operation_in, operation_out, round_offset=0):
+    return lambda text, byte, bit, cipher, rnd: func(text, byte, bit, cipher, leakage_lookup(operation_in, rnd), leakage_lookup(operation_out, rnd+round_offset))
 
 def eval_rand_v_rand(waves, textins, func, key_len=16, round_range=None, byte_range=None, bit_range=None, plot=False):
     """ Evaluate rand_v_rand traces using a leakage function.
