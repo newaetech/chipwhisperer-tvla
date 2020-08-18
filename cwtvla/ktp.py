@@ -36,6 +36,9 @@ def verify_AES(plaintext, key, ciphertext):
 class FixedVRandomText:
     """ Key text pairs for FixedVRandomText TVLA
 
+    Useful for evaluating the general leakage of a device, but
+    may pick up false positives from loading/unloading of key/plaintext.
+
     Usage::
 
         import cwtvla
@@ -80,7 +83,9 @@ class FixedVRandomText:
         """Return key, text for random group. Updates random group afterwards
 
         1st Call: I0
+
         2nd Call: I1
+
         3rd Call: I2..."""
         pt = self._I_0
         self._I_0 = bytearray(self._cipher.cipher_block(list(self._I_0)))
@@ -148,6 +153,8 @@ class SemiFixedVRandomText:
 
     Sets state in selected round to 0x8B8A490BDF7C00BDD7E6066Cxxxxxxxx. Varies the last bits
     and reverses to get input plaintext.
+
+    Useful since it is both non-specific and restricts TVLA results to a middle round.
 
     Usage::
 

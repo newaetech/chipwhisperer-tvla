@@ -3,3 +3,5 @@
 cwtvla.egg-info*
 *.ipynb_checkpoints
 *.vscode
+docs/_build
+docs/make.bat

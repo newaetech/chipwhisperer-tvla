@@ -17,6 +17,7 @@ def leakage_lookup(operation, round):
 
     Returns:
         A number corresponding to the desired operation
+
     """
     opn = 0
     if operation == "subbytes":
@@ -100,7 +101,7 @@ def leakage_func_bit(text, byte, bit, cipher, op_in, op_out):
 
     cipher._add_round_key(state, cipher._Nr)
 
-    return ((states[op_in][byte] ^ states[op_out][byte]) >> bit) & 1
+    return (((states[op_in][byte] ^ states[op_out][byte]) >> bit) & 1) == 1
 
 def leakage_func_byte(text, byte, val, cipher, op_in, op_out):
     """ A generic leakage function for testing the value AES state
@@ -156,6 +157,9 @@ roundout_hw = lambda text, byte, bit, cipher, rnd: leakage_func_bit(text, byte, 
 roundinout_hd = lambda text, byte, bit, cipher, rnd: leakage_func_bit(text, byte, bit, cipher, 2+4*(rnd-1)-1, 2+4*(rnd-1)+3)
 sboxinout_hd = lambda text, byte, bit, cipher, rnd: leakage_func_bit(text, byte, bit, cipher, 2+4*(rnd-1)-1, 2+4*(rnd-1))
 generic_leakage_hw = lambda text, byte, bit, cipher, op_in: leakage_func_bit(text, byte, bit, cipher, op_in, 0)
+
+def construct_leakage(func, operation_in, operation_out):
+    return lambda text, byte, bit, cipher, rnd: func(text, byte, bit, cipher, leakage_lookup(operation_in, rnd), leakage_lookup(operation_out, rnd))
 
 def eval_rand_v_rand(waves, textins, func, key_len=16, round_range=None, byte_range=None, bit_range=None, plot=False):
     """ Evaluate rand_v_rand traces using a leakage function.
