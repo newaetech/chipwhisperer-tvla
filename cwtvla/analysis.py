@@ -46,7 +46,7 @@ def t_test(group1, group2):
         group2 (numpy.array): Group 2
 
     Returns:
-        A numpy with two elements spanning the length of the traces. The
+        numpy.array: A numpy array with two elements spanning the length of the traces. The
         first is between the first half of groups 1 and 2. The second
         is between the second half of the groups.
     """
@@ -74,7 +74,7 @@ def leakage_func_bit(text, byte, bit, cipher, op_in, op_out):
         op_out (int): Use the state after operation op_out. If 0, an array of 0 is used (useful for HW)
 
     Returns:
-        1 if the bit under test is 1, 0 if it is 0
+        int: 1 if the bit under test is 1, 0 if it is 0
     """
     state = list(text)
     cipher._add_round_key(state, 0)
@@ -104,14 +104,14 @@ def leakage_func_bit(text, byte, bit, cipher, op_in, op_out):
 
     cipher._add_round_key(state, cipher._Nr)
 
-    return (((states[op_in][byte] ^ states[op_out][byte]) >> bit) & 1) == 1
+    return (((states[op_in][byte] ^ states[op_out][byte]) >> bit) & 1)
 
 def leakage_func_byte(text, byte, val, cipher, op_in, op_out):
     """ A generic leakage function for testing the value AES state
 
     Tests between operations op_in and op_out. Assuming st0 is the state
     after operation op_in and st1 is the state after operation op_out,
-    returns (st0[byte] ^ st1[byte]) == val
+    returns int((st0[byte] ^ st1[byte]) == val)
 
     Args:
         text (list): The input plaintext
@@ -122,7 +122,7 @@ def leakage_func_byte(text, byte, val, cipher, op_in, op_out):
         op_out (int): Use the state after operation op_out. If 0, an array of 0 is used (useful for HW)
 
     Returns:
-        1 if the bit under test is 1, 0 if it is 0
+        int: 1 if state_byte == val
     """
     #bit unused
     state = list(text)
@@ -153,16 +153,38 @@ def leakage_func_byte(text, byte, val, cipher, op_in, op_out):
 
     cipher._add_round_key(state, cipher._Nr)
 
-    return (states[op_in][byte] ^ states[op_out][byte]) == val
+    return int((states[op_in][byte] ^ states[op_out][byte]) == val)
 
-sbox_hw = lambda text, byte, bit, cipher, rnd: leakage_func_bit(text, byte, bit, cipher, 2+4*(rnd-1), 0)
-roundout_hw = lambda text, byte, bit, cipher, rnd: leakage_func_bit(text, byte, bit, cipher, 2+4*(rnd-1)+3, 0)
-roundinout_hd = lambda text, byte, bit, cipher, rnd: leakage_func_bit(text, byte, bit, cipher, 2+4*(rnd-1)-1, 2+4*(rnd-1)+3)
-sboxinout_hd = lambda text, byte, bit, cipher, rnd: leakage_func_bit(text, byte, bit, cipher, 2+4*(rnd-1)-1, 2+4*(rnd-1))
-generic_leakage_hw = lambda text, byte, bit, cipher, op_in: leakage_func_bit(text, byte, bit, cipher, op_in, 0)
 
-def construct_leakage(func, operation_in, operation_out, round_offset=0):
-    return lambda text, byte, bit, cipher, rnd: func(text, byte, bit, cipher, leakage_lookup(operation_in, rnd), leakage_lookup(operation_out, rnd+round_offset))
+def construct_leakage_bit(operation_in, operation_out, round_offset=0):
+    """ Construct a leakage function using func between operation_in and operation_out
+
+    round_offset can be used to offset operation_out to a different round
+
+    Args:
+        operation_in (str): 'addroundkey', 'subbytes', 'shiftrows', or 'mixcolumns'. Use None for no op.
+        operation_out (str): 'addroundkey', 'subbytes', 'shiftrows', or 'mixcolumns'. Use None for no op.
+        round_offset (int): How many rounds to offset operation_out
+
+    Returns:
+        function(text, byte, bit, cipher, rnd): leakage function
+    """
+    return lambda text, byte, bit, cipher, rnd: leakage_func_bit(text, byte, bit, cipher, leakage_lookup(operation_in, rnd), leakage_lookup(operation_out, rnd+round_offset))
+
+def construct_leakage_byte(operation_in, operation_out, round_offset=0):
+    """ Construct a leakage function using func between operation_in and operation_out
+
+    round_offset can be used to offset operation_out to a different round
+
+    Args:
+        operation_in (str): 'addroundkey', 'subbytes', 'shiftrows', or 'mixcolumns'. Use None for no op.
+        operation_out (str): 'addroundkey', 'subbytes', 'shiftrows', or 'mixcolumns'. Use None for no op.
+        round_offset (int): How many rounds to offset operation_out
+
+    Returns:
+        function(text, byte, bit, cipher, rnd): leakage function
+    """
+    return lambda text, byte, bit, cipher, rnd: leakage_func_byte(text, byte, bit, cipher, leakage_lookup(operation_in, rnd), leakage_lookup(operation_out, rnd+round_offset))
 
 def eval_rand_v_rand(waves, textins, func, key_len=16, round_range=None, byte_range=None, bit_range=None, plot=False):
     """ Evaluate rand_v_rand traces using a leakage function.
@@ -211,14 +233,22 @@ def eval_rand_v_rand(waves, textins, func, key_len=16, round_range=None, byte_ra
                     plt.pause(0.0001)
 
 
-def check_t_test(t):
+def check_t_test(t, threshold=4.5):
     """Check the results of the t_test and return points where it failed.
+
+    Args:
+        t (np.array(shape=(2, scope.adc.samples), dtype='float64')): t_test results
+        threshold (float): If t[0] and t[1] are above threshold or below -threshold at
+                            the same point, it is considered a failure point
+
+    Returns:
+        list of failed points
     """
     failed_points = []
     for i in range(len(t[0])):
-        if ((t[0][i]) > 4.5) and ((t[1][i]) > 4.5):
+        if ((t[0][i]) > threshold) and ((t[1][i]) > threshold):
             failed_points.append(i)
-        elif ((t[0][i]) < -4.5) and ((t[1][i]) < -4.5):
+        elif ((t[0][i]) < -threshold) and ((t[1][i]) < -threshold):
             failed_points.append(i)
 
     return failed_points
@@ -230,3 +260,8 @@ def build_mean_corr(traces):
 
 def build_centered_product(mct):
     return np.multiply(mct, axis=1)
+
+sbox_hw = construct_leakage_bit("subbytes", None)
+roundout_hw = construct_leakage_bit("addroundkey", None)
+roundinout_hd = construct_leakage_bit("addroundkey", "addroundkey", 1)
+sboxinout_hd = construct_leakage_bit("addroundkey", "subbytes", 0)

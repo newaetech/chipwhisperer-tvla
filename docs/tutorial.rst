@@ -101,6 +101,11 @@ and record both trace wave data and plaintext.::
 Evaluating Data
 ****************
 
+:code:`cwtvla` expects numpy arrays in the following formats::
+
+    trace_data = np.array(shape=(num_traces, trace_len), dtype='float64')
+    textin_data = np.array(shape=(num_traces, 16), dtype='uint8')
+
 ^^^^^^^^^^^^^^^^^^
 Non-Specific Tests
 ^^^^^^^^^^^^^^^^^^
@@ -153,6 +158,11 @@ Here func has the following function prototype::
 
     func(text: list, byte: uint8, bit: uint8, cipher: AESCipher, rnd: uint8) -> bool
 
+To make it easier to generate leakage functions, you can use the function constructors :code:`construct_leakage_bit`
+and :code:`construct_leakage_byte`::
+
+    func = cwtvla.construct_leakage_bit("addroundkey", "subbytes")
+
 ***************************
 ChipWhisperer Convenience
 ***************************
@@ -167,37 +177,37 @@ You can then either do a full capture run, putting the data in a ChipWhisperer z
     import cwtvla.cw_convenience as conv
     z = conv.capture_all(scope, target, "STM32F3")
 
-Or doing tests individually, which return numpy arrays::
+Or do tests individually, which return numpy arrays::
 
     group1, group2 = conv.capture_non_specific(scope, target, cwtvla.FixedVRandomText)
     waves, textins = conv.capture_rand(scope, target)
 
-ChipWhisperer zarr containers have a tree similar to the following::
+ChipWhisperer zarr containers have a tree in the following format::
 
         /
         ├── PLATFORM_A
         |   ├── FixedVRandomKey-KEY_LEN
         |   │   ├── results
-        |   │   │   └── tvla (2, 24400) float64
+        |   │   │   └── tvla (2, scope.adc.samples) float64
         |   │   └── traces
-        |   │       ├── group1 (10000, 24400) float64
-        |   │       └── group2 (10000, 24400) float64
+        |   │       ├── group1 (N, scope.adc.samples) float64
+        |   │       └── group2 (N, scope.adc.samples) float64
         |   ├── FixedVRandomText-KEY_LEN
         |   │   ├── results
-        |   │   │   └── tvla (2, 24400) float64
+        |   │   │   └── tvla (2, scope.adc.samples) float64
         |   │   └── traces
-        |   │       ├── group1 (10000, 24400) float64
-        |   │       └── group2 (10000, 24400) float64
+        |   │       ├── group1 (N, scope.adc.samples) float64
+        |   │       └── group2 (N, scope.adc.samples) float64
         |   ├── RandVRand-KEY_LEN
         |   │   └── traces
-        |   │       ├── textins (10000, 16) uint8
-        |   │       └── waves (10000, 24400) float64
+        |   │       ├── textins (N, 16) uint8
+        |   │       └── waves (N, scope.adc.samples) float64
         |   └── SemiFixedVRandomText-KEY_LEN
         |       ├── results
-        |       │   └── tvla (2, 24400) float64
+        |       │   └── tvla (2, scope.adc.samples) float64
         |       └── traces
-        |           ├── group1 (10000, 24400) float64
-        |           └── group2 (10000, 24400) float64
+        |           ├── group1 (N, scope.adc.samples) float64
+        |           └── group2 (N, scope.adc.samples) float64
         |
         ├── PLATFORM_B
         .

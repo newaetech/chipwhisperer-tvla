@@ -17,9 +17,9 @@
 
 # -- Project information -----------------------------------------------------
 
-project = 'chipwhisperer-tvla'
-copyright = '2020, Alex Dewar'
-author = 'Alex Dewar'
+project = 'ChipWhisperer-TVLA'
+copyright = '2020, NewAE Technology Inc.'
+author = 'NewAE Technology Inc.'
 
 # The full version, including alpha/beta/rc tags
 release = '0.1'
@@ -53,6 +53,12 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 #
 html_theme = 'alabaster'
 
+html_theme_options = {
+	'sidebar_width': '265px',
+	'page_width': '1000px',
+}
+
+todo_include_todos = True
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
