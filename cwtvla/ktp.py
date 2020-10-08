@@ -52,18 +52,18 @@ class FixedVRandomText:
     def __init__(self, key_len=16):
         self._key_len = key_len
         self._I_0 = bytearray([0x00] * 16)
-        rounds = 10
+        self.rounds = 10
         if key_len == 16:
             self._I_fixed = util.hexStrToByteArray("da 39 a3 ee 5e 6b 4b 0d 32 55 bf ef 95 60 18 90")
             self._K_dev = util.hexStrToByteArray("01 23 45 67 89 ab cd ef 12 34 56 78 9a bc de f0")
             self._K_gen = util.hexStrToByteArray("12 34 56 78 9a bc de f1 23 45 67 89 ab cd e0 f0")
         elif key_len == 24:
-            rounds = 12
+            self.rounds = 12
             self._I_fixed = util.hexStrToByteArray("da 39 a3 ee 5e 6b 4b 0d 32 55 bf ef 95 60 18 88")
             self._K_dev = util.hexStrToByteArray("01 23 45 67 89 ab cd ef 12 34 56 78 9a bc de f0 23 45 67 89 ab cd ef 01")
             self._K_gen = util.hexStrToByteArray("12 34 56 78 9a bc de f1 23 45 67 89 ab cd ef 02 34 56 78 9a bc de 0f 01") 
         elif key_len == 32:
-            rounds = 14
+            self.rounds = 14
             self._I_fixed = util.hexStrToByteArray("da 39 a3 ee 5e 6b 4b 0d 32 55 bf ef 95 60 18 95")
             self._K_dev = util.hexStrToByteArray("01 23 45 67 89 ab cd ef 12 34 56 78 9a bc de f0 23 45 67 89 ab cd ef 01 34 56 78 9a bc de f0 12")
             self._K_gen = util.hexStrToByteArray("12 34 56 78 9a bc de f1 23 45 67 89 ab cd ef 02 34 56 78 9a bc de f0 13 45 67 89 ab cd e0 f0 12")
