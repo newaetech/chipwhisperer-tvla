@@ -22,7 +22,7 @@ import os
 project = 'ChipWhisperer-TVLA'
 copyright = '2020, NewAE Technology Inc.'
 author = 'NewAE Technology Inc.'
-sys.path.insert(0, os.path.abspath('./..'))
+sys.path.insert(0, os.path.abspath('..'))
 
 # The full version, including alpha/beta/rc tags
 release = '0.1'
