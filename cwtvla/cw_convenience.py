@@ -190,3 +190,4 @@ def test_cw_non_specific(platform, key_len=16):
         plt.plot(t[0])
         plt.plot(t[1])
         plt.show()
+
