@@ -17,6 +17,7 @@
 
 # -- Project information -----------------------------------------------------
 import sys
+import os
 
 project = 'ChipWhisperer-TVLA'
 copyright = '2020, NewAE Technology Inc.'
