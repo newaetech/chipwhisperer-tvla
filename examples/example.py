@@ -1,7 +1,7 @@
 # do capture for TVLA
 
 #... setup, get scope, target
-from tqmd import trange
+from tqdm import trange
 import chipwhisperer as cw
 scope = cw.scope()
 target = cw.target(scope)
