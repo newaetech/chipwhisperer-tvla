@@ -31,7 +31,6 @@
 #
 # Currently only support AES-128 and AES-256
 #
-from chipwhisperer.common.utils.util import camel_case_deprecated
 
 
 def sbox(inp):
@@ -233,72 +232,3 @@ def key_schedule_rounds(input_key, input_round, desired_round):
     #Return answer
     return state
 
-keyScheduleRounds = camel_case_deprecated(key_schedule_rounds)
-
-def test():
-    #Manual tests right now - need to automate this.
-
-    ##### AES-128 Tests
-    print("**********AES-128 Tests***************")
-
-    ik = [0]*16
-    for i in range(0, 11):
-        result = keyScheduleRounds(ik, 0, i)
-        print((" ".join(["%2x"%d for d in result])))
-        ok = result
-
-    # 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-    # 62 63 63 63 62 63 63 63 62 63 63 63 62 63 63 63
-    # 9b 98 98 c9 f9 fb fb aa 9b 98 98 c9 f9 fb fb aa
-    # 90 97 34 50 69 6c cf fa f2 f4 57 33 0b 0f ac 99
-    # ee 06 da 7b 87 6a 15 81 75 9e 42 b2 7e 91 ee 2b
-    # 7f 2e 2b 88 f8 44 3e 09 8d da 7c bb f3 4b 92 90
-    # ec 61 4b 85 14 25 75 8c 99 ff 09 37 6a b4 9b a7
-    # 21 75 17 87 35 50 62 0b ac af 6b 3c c6 1b f0 9b
-    # 0e f9 03 33 3b a9 61 38 97 06 0a 04 51 1d fa 9f
-    # b1 d4 d8 e2 8a 7d b9 da 1d 7b b3 de 4c 66 49 41
-    #b4 ef 5b cb 3e 92 e2 11 23 e9 51 cf 6f 8f 18 8e
-
-    print("")
-
-    for i in range(0, 11):  # 10 Rounds
-        result = keyScheduleRounds(ok, 10, i)
-        print((" ".join(["%2x" % d for d in result])))
-
-    ##### AES-256 Tests
-    print("**********AES-256 Tests***************")
-
-    ik = [0]*32
-    for i in range(0, 15):  # 14 Rounds
-        result = keyScheduleRounds(ik, 0, i)
-        print((" ".join(["%02x"%d for d in result])))
-
-    # 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-    # 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-    # 62 63 63 63 62 63 63 63 62 63 63 63 62 63 63 63
-    # aa fb fb fb aa fb fb fb aa fb fb fb aa fb fb fb
-    # 6f 6c 6c cf 0d 0f 0f ac 6f 6c 6c cf 0d 0f 0f ac
-    # 7d 8d 8d 6a d7 76 76 91 7d 8d 8d 6a d7 76 76 91
-    # 53 54 ed c1 5e 5b e2 6d 31 37 8e a2 3c 38 81 0e
-    # 96 8a 81 c1 41 fc f7 50 3c 71 7a 3a eb 07 0c ab
-    # 9e aa 8f 28 c0 f1 6d 45 f1 c6 e3 e7 cd fe 62 e9
-    # 2b 31 2b df 6a cd dc 8f 56 bc a6 b5 bd bb aa 1e
-    # 64 06 fd 52 a4 f7 90 17 55 31 73 f0 98 cf 11 19
-    # 6d bb a9 0b 07 76 75 84 51 ca d3 31 ec 71 79 2f
-    # e7 b0 e8 9c 43 47 78 8b 16 76 0b 7b 8e b9 1a 62
-    # 74 ed 0b a1 73 9b 7e 25 22 51 ad 14 ce 20 d4 3b
-    #10 f8 0a 17 53 bf 72 9c 45 c9 79 e7 cb 70 63 85
-
-    print("")
-
-    ik = [0x74 ,0xed ,0x0b ,0xa1 ,0x73 ,0x9b ,0x7e ,0x25 ,0x22 ,
-          0x51 ,0xad ,0x14 ,0xce ,0x20 ,0xd4 ,0x3b ,0x10 ,0xf8 ,
-          0x0a ,0x17 ,0x53 ,0xbf ,0x72 ,0x9c ,0x45 ,0xc9 ,0x79 ,
-          0xe7 ,0xcb ,0x70 ,0x63, 0x85]
-
-    for i in range(0, 14):
-        result = keyScheduleRounds(ik, 13, i)
-        print((" ".join(["%2x"%d for d in result])))
-
-if __name__ == "__main__":
-    test()

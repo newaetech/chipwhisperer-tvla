@@ -3,7 +3,7 @@ import numpy as np
 from scipy.stats import ttest_ind 
 from tqdm import trange
 from .ktp import FixedVRandomText
-import matplotlib.pyplot as plt
+import logging
 import tqdm
 
 
@@ -226,6 +226,10 @@ def eval_rand_v_rand(waves, textins, func, key_len=16, round_range=None, byte_ra
                 else:
                     print("Passed test")
                 if plot:
+                    try:
+                        import matplotlib.pyplot as plt
+                    except:
+                        logging.error("Matplotlib required for plotting")
                     plt.cla()
                     plt.plot(t_val[0])
                     plt.plot(t_val[1])
