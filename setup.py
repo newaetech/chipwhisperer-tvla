@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='cwtvla',
-    version='0.1.1',
+    version='0.1.2',
     description='ChipWhisperer Test Vector Leakage Assessment Library',
     author='Alex Dewar',
     author_email='adewar@newae.com',
@@ -11,9 +11,7 @@ setup(
     install_requires=[
         'scipy',
         'numpy',
-        'zarr',
-        'tqdm'
         #cw not really necessary, but cw convenience functions obviously require CW to be installed
-        #'chipwhisperer' 
+        # 'chipwhisperer' 
     ]
 )

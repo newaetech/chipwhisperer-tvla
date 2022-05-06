@@ -1,10 +1,7 @@
-import zarr
 import numpy as np
 from scipy.stats import ttest_ind 
-from tqdm import trange
 from .ktp import FixedVRandomText
 import logging
-import tqdm
 
 
 def leakage_lookup(operation, round):
