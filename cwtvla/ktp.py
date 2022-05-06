@@ -1,9 +1,34 @@
-from chipwhisperer.common.utils import util
 import warnings
 from .aes_cipher import AESCipher
 from .key_schedule import key_schedule_rounds
 import numpy as np
 import random
+
+def hexstr2list(data):
+    """Convert a string with hex numbers into a list of numbers"""
+
+    data = str(data)
+
+    newdata = data.lower()
+    newdata = newdata.replace("0x", "")
+    newdata = newdata.replace(",", "")
+    newdata = newdata.replace(" ", "")
+    newdata = newdata.replace("[", "")
+    newdata = newdata.replace("]", "")
+    newdata = newdata.replace("(", "")
+    newdata = newdata.replace(")", "")
+    newdata = newdata.replace("{", "")
+    newdata = newdata.replace("}", "")
+    newdata = newdata.replace(":", "")
+    newdata = newdata.replace("-", "")
+
+    datalist = [int(newdata[i:(i + 2)], 16) for i in range(0, len(newdata), 2)]
+
+    return datalist
+
+def hexStrToByteArray(hexStr):
+    ba = bytearray(hexstr2list(hexStr))
+    return ba
 
 def _expand_aes_key(key):
     rounds = 0
