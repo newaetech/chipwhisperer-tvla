@@ -58,6 +58,7 @@ def verify_AES(plaintext, key, ciphertext):
     calc_ciphertext = bytearray(cipher.cipher_block(list(plaintext)))
     return (ciphertext == calc_ciphertext)
 
+
 class FixedVRandomText:
     """ Key text pairs for FixedVRandomText TVLA
 
@@ -172,7 +173,6 @@ class FixedVRandomKey:
         self._I_0_rand = bytearray(self._cipher.cipher_block(list(text)))
 
         return key, text
-
 
 class SemiFixedVRandomText:
     """ Key text pairs for SemiFixedVRandomText.
