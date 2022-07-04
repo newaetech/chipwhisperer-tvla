@@ -3,6 +3,7 @@ from .aes_cipher import AESCipher
 from .key_schedule import key_schedule_rounds
 import numpy as np
 import random
+from chipwhisperer.common.utils import util
 
 def hexstr2list(data):
     """Convert a string with hex numbers into a list of numbers"""
@@ -56,7 +57,6 @@ def verify_AES(plaintext, key, ciphertext):
     cipher = AESCipher(key_exp)
     calc_ciphertext = bytearray(cipher.cipher_block(list(plaintext)))
     return (ciphertext == calc_ciphertext)
-
 
 class FixedVRandomText:
     """ Key text pairs for FixedVRandomText TVLA
