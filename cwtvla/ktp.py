@@ -173,6 +173,7 @@ class FixedVRandomKey:
 
         return key, text
 
+
 class SemiFixedVRandomText:
     """ Key text pairs for SemiFixedVRandomText.
 
