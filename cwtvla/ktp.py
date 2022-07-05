@@ -79,19 +79,19 @@ class FixedVRandomText:
         self._I_0 = bytearray([0x00] * 16)
         self.rounds = 10
         if key_len == 16:
-            self._I_fixed = util.hexStrToByteArray("da 39 a3 ee 5e 6b 4b 0d 32 55 bf ef 95 60 18 90")
-            self._K_dev = util.hexStrToByteArray("01 23 45 67 89 ab cd ef 12 34 56 78 9a bc de f0")
-            self._K_gen = util.hexStrToByteArray("12 34 56 78 9a bc de f1 23 45 67 89 ab cd e0 f0")
+            self._I_fixed = hexStrToByteArray("da 39 a3 ee 5e 6b 4b 0d 32 55 bf ef 95 60 18 90")
+            self._K_dev = hexStrToByteArray("01 23 45 67 89 ab cd ef 12 34 56 78 9a bc de f0")
+            self._K_gen = hexStrToByteArray("12 34 56 78 9a bc de f1 23 45 67 89 ab cd e0 f0")
         elif key_len == 24:
             self.rounds = 12
-            self._I_fixed = util.hexStrToByteArray("da 39 a3 ee 5e 6b 4b 0d 32 55 bf ef 95 60 18 88")
-            self._K_dev = util.hexStrToByteArray("01 23 45 67 89 ab cd ef 12 34 56 78 9a bc de f0 23 45 67 89 ab cd ef 01")
-            self._K_gen = util.hexStrToByteArray("12 34 56 78 9a bc de f1 23 45 67 89 ab cd ef 02 34 56 78 9a bc de 0f 01") 
+            self._I_fixed = hexStrToByteArray("da 39 a3 ee 5e 6b 4b 0d 32 55 bf ef 95 60 18 88")
+            self._K_dev = hexStrToByteArray("01 23 45 67 89 ab cd ef 12 34 56 78 9a bc de f0 23 45 67 89 ab cd ef 01")
+            self._K_gen = hexStrToByteArray("12 34 56 78 9a bc de f1 23 45 67 89 ab cd ef 02 34 56 78 9a bc de 0f 01") 
         elif key_len == 32:
             self.rounds = 14
-            self._I_fixed = util.hexStrToByteArray("da 39 a3 ee 5e 6b 4b 0d 32 55 bf ef 95 60 18 95")
-            self._K_dev = util.hexStrToByteArray("01 23 45 67 89 ab cd ef 12 34 56 78 9a bc de f0 23 45 67 89 ab cd ef 01 34 56 78 9a bc de f0 12")
-            self._K_gen = util.hexStrToByteArray("12 34 56 78 9a bc de f1 23 45 67 89 ab cd ef 02 34 56 78 9a bc de f0 13 45 67 89 ab cd e0 f0 12")
+            self._I_fixed = hexStrToByteArray("da 39 a3 ee 5e 6b 4b 0d 32 55 bf ef 95 60 18 95")
+            self._K_dev = hexStrToByteArray("01 23 45 67 89 ab cd ef 12 34 56 78 9a bc de f0 23 45 67 89 ab cd ef 01 34 56 78 9a bc de f0 12")
+            self._K_gen = hexStrToByteArray("12 34 56 78 9a bc de f1 23 45 67 89 ab cd ef 02 34 56 78 9a bc de f0 13 45 67 89 ab cd e0 f0 12")
         else:
             raise ValueError("Invalid key length {}, must be 16, 24, or 32".format(key_len))
 
@@ -133,19 +133,19 @@ class FixedVRandomKey:
         self._key_len = key_len
         self._I_0_fixed = bytearray([0xAA] * 16)
         self._I_0_rand = bytearray([0xCC] * 16)
-        self._K_0 = util.hexStrToByteArray("53 53 53 53 53 53 53 53 53 53 53 53 53 53 53 53")
+        self._K_0 = hexStrToByteArray("53 53 53 53 53 53 53 53 53 53 53 53 53 53 53 53")
         rounds = 10
         if key_len == 16:
-            self._K_fixed = util.hexStrToByteArray("81 1E 37 31 B0 12 0A 78 42 78 1E 22 B2 5C DD F9")
-            self._K_gen = util.hexStrToByteArray("12 34 56 78 9a bc de f1 23 45 67 89 ab cd e0 f0")
+            self._K_fixed = hexStrToByteArray("81 1E 37 31 B0 12 0A 78 42 78 1E 22 B2 5C DD F9")
+            self._K_gen = hexStrToByteArray("12 34 56 78 9a bc de f1 23 45 67 89 ab cd e0 f0")
         elif key_len == 24:
             rounds = 12
-            self._K_fixed = util.hexStrToByteArray("81 1E 37 31 B0 12 0A 78 42 78 1E 22 B2 5C DD F9 94 F4 D9 2C D2 FA E6 45")
-            self._K_gen =util.hexStrToByteArray("12 34 56 78 9a bc de f1 23 45 67 89 ab cd ef 02 34 56 78 9a bc de 0f 01") 
+            self._K_fixed = hexStrToByteArray("81 1E 37 31 B0 12 0A 78 42 78 1E 22 B2 5C DD F9 94 F4 D9 2C D2 FA E6 45")
+            self._K_gen =hexStrToByteArray("12 34 56 78 9a bc de f1 23 45 67 89 ab cd ef 02 34 56 78 9a bc de 0f 01") 
         elif key_len == 32:
             rounds = 14
-            self._K_fixed = util.hexStrToByteArray("81 1E 37 31 B0 12 0A 78 42 78 1E 22 B2 5C DD F9 94 F4 D9 2C D2 FA E6 45 37 B9 40 EA 5E 1A F1 12")
-            self._K_gen = util.hexStrToByteArray("12 34 56 78 9a bc de f1 23 45 67 89 ab cd ef 02 34 56 78 9a bc de f0 13 45 67 89 ab cd e0 f0 12")
+            self._K_fixed = hexStrToByteArray("81 1E 37 31 B0 12 0A 78 42 78 1E 22 B2 5C DD F9 94 F4 D9 2C D2 FA E6 45 37 B9 40 EA 5E 1A F1 12")
+            self._K_gen = hexStrToByteArray("12 34 56 78 9a bc de f1 23 45 67 89 ab cd ef 02 34 56 78 9a bc de f0 13 45 67 89 ab cd e0 f0 12")
         else:
             raise ValueError("Invalid key length {}, must be 16, 24, or 32".format(key_len))
 
@@ -196,24 +196,24 @@ class SemiFixedVRandomText:
         rounds = 10
         random.seed()
         self._round = round
-        self._I_semi_fixed = util.hexStrToByteArray("8B 8A 49 0B DF 7C 00 BD D7 E6 06 6C 61 00 24 12")
+        self._I_semi_fixed = hexStrToByteArray("8B 8A 49 0B DF 7C 00 BD D7 E6 06 6C 61 00 24 12")
         if key_len == 16:
             if not round:
                 self._round = 5
-            self._K_dev = util.hexStrToByteArray("01 23 45 67 89 ab cd ef 12 34 56 78 9a bc de f0")
-            self._K_gen = util.hexStrToByteArray("12 34 56 78 9a bc de f1 23 45 67 89 ab cd e0 f0")
+            self._K_dev = hexStrToByteArray("01 23 45 67 89 ab cd ef 12 34 56 78 9a bc de f0")
+            self._K_gen = hexStrToByteArray("12 34 56 78 9a bc de f1 23 45 67 89 ab cd e0 f0")
         elif key_len == 24:
             rounds = 12
             if not round:
                 self._round = 6
-            self._K_dev = util.hexStrToByteArray("01 23 45 67 89 ab cd ef 12 34 56 78 9a bc de f0 23 45 67 89 ab cd ef 01")
-            self._K_gen = util.hexStrToByteArray("12 34 56 78 9a bc de f1 23 45 67 89 ab cd ef 02 34 56 78 9a bc de 0f 01") 
+            self._K_dev = hexStrToByteArray("01 23 45 67 89 ab cd ef 12 34 56 78 9a bc de f0 23 45 67 89 ab cd ef 01")
+            self._K_gen = hexStrToByteArray("12 34 56 78 9a bc de f1 23 45 67 89 ab cd ef 02 34 56 78 9a bc de 0f 01") 
         elif key_len == 32:
             if not round:
                 self._round = 7
             rounds = 14
-            self._K_dev = util.hexStrToByteArray("01 23 45 67 89 ab cd ef 12 34 56 78 9a bc de f0 23 45 67 89 ab cd ef 01 34 56 78 9a bc de f0 12")
-            self._K_gen = util.hexStrToByteArray("12 34 56 78 9a bc de f1 23 45 67 89 ab cd ef 02 34 56 78 9a bc de f0 13 45 67 89 ab cd e0 f0 12")
+            self._K_dev = hexStrToByteArray("01 23 45 67 89 ab cd ef 12 34 56 78 9a bc de f0 23 45 67 89 ab cd ef 01 34 56 78 9a bc de f0 12")
+            self._K_gen = hexStrToByteArray("12 34 56 78 9a bc de f1 23 45 67 89 ab cd ef 02 34 56 78 9a bc de f0 13 45 67 89 ab cd e0 f0 12")
         else:
             raise ValueError("Invalid key length {}, must be 16, 24, or 32".format(key_len))
 
